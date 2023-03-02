@@ -1,0 +1,8 @@
+
+name: flypy_yk
+version: "0.0.1"
+sort: by_weight
+
+import_tables:
+  - flypy_yk.base
+  - flypy_yk.wubi
