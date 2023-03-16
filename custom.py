@@ -98,6 +98,41 @@ def get_word_to_code(filename):
     return word_to_code
 
 
+def get_line_to_dict(filename, func):
+    ret = collections.defaultdict(list)
+    begin = False
+    with open(filename, "r", encoding="utf8") as f:
+        for line in f:
+            if begin:
+                args = line.split("\t")
+                if len(args) < 2:
+                    continue
+                key, value = func(args)
+                if key is None:
+                    continue
+                ret[key].append(value)
+            else:
+                if line.startswith("..."):
+                    begin = True
+    return ret
+
+
+def get_word_to_code(filename):
+    def fn(args):
+        word = args[0]
+        code = args[1].strip()
+        return word, code
+    return get_line_to_dict(filename, fn)
+
+
+def get_code_to_word(filename):
+    def fn(args):
+        word = args[0]
+        code = args[1].strip()
+        return code, word
+    return get_line_to_dict(filename, fn)
+
+
 FLYPY_WUBI_PREFIX = """
 # Rime dict
 # encoding: utf-8
@@ -146,13 +181,90 @@ def code_word_swap(filename):
     simp_file_fn(filename, filename + ".swap", fn)
 
 
+def add_low_weight(filename):
+    def fn(line):
+        args = line.split("\t")
+        if len(args) < 2:
+            return
+        code = args[1].strip()
+        word = args[0].strip()
+        return f"{word}\t{code}\t{41848}\n"
+    simp_file_fn(filename, "low."+filename, fn)
+
+
+def merge(to_name, *filenames):
+    begin = False
+    lines = []
+    for filename in filenames:
+        with open(filename, "r", encoding="utf8") as f:
+            for line in f:
+                if begin:
+                    args = line.split("\t")
+                    if len(args) < 2:
+                        continue
+                    word = args[0]
+                    code = args[1].strip()
+                    weight = len(lines) + 1
+                    lines.append(f"{word}\t{code}\t{weight}\n")
+                else:
+                    if line.startswith("..."):
+                        begin = True
+
+    with open(to_name, "w", encoding="utf8") as f:
+        f.writelines(lines)
+
+
+def check_same_code_with_other(a, *args):
+    code_to_word1 = get_code_to_word(a)
+    # code_to_word2 = get_code_to_word(b)
+    code_to_word2 = {}
+    for i in args:
+        code_to_word2.update(get_code_to_word(i))
+    same_keys = code_to_word1.keys() & code_to_word2.keys()
+    for k in same_keys:
+        print(k, code_to_word1[k])
+        print(k, code_to_word2[k])
+
+
+def check_same_code(a):
+    code_to_word1 = get_code_to_word(a)
+    for k, v in code_to_word1.items():
+        if len(v) == 4:
+            print(k, v)
+
+
+def wubilevel2(filename):
+    def fn(args):
+        word = args[0]
+        code = args[1].strip()
+        if len(code) != 2:
+            return None, None
+        return code, word
+    code_to_word = get_line_to_dict(filename, fn)
+    l = set([i[0] for i in code_to_word.values()])
+    print("".join(l))
+
+
 def main():
     # simp_file("wubi86_jidian.dict.yaml.org", "wubi86_jidian.dict.yaml")
     # simp_file("double_pinyin_flypy.dict.yaml.org", "double_pinyin_flypy.dict.yaml")
 
-    code_word_swap("x.yaml")
+    # code_word_swap("x.yaml")
     # flypy_no_end("x.yaml.swap")
     # to_flypy_wubi("flypy_yk.wubi.dict.yaml")
+
+    # add_low_weight("flypy_yk.wubi.dict.yaml")
+    # merge("to.txt",
+    #     "wubi/wubi86_ms.dict.yaml",
+    #     "flypy_yk/flypy_yk.base.dict.yaml",
+    #     "flypy_yk/flypy_yk.wubi.dict.yaml",
+    #     )
+    # check_same_code_with_other("wubi/wubi86_ms.dict.yaml",
+    #     "flypy_yk/flypy_yk.base.dict.yaml",
+    #     "flypy_yk/flypy_yk.wubi.dict.yaml",
+    #     )
+    # check_same_code("wubi/wubi86_ms.dict.yaml")
+    wubilevel2("wubi/wubi86_ms.dict.yaml")
     print("done")
 
 
