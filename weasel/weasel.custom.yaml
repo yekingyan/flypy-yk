@@ -1,0 +1,17 @@
+customization:
+  distribution_code_name: Weasel
+  distribution_version: 0.14.3
+  generator: "Weasel::UIStyleSettings"
+  modified_time: "Wed Mar  1 21:34:40 2023"
+  rime_version: 1.5.3
+patch:
+  "style/color_scheme": google
+  "style/horizontal": true  # 水平显示
+
+  app_options/gvim.exe:  # 程序名字全用小寫字母
+    ascii_mode: true
+  app_options/visual_studio_code.exe:
+    ascii_mode: true
+  app_options/pycharm.exe:
+    ascii_mode: true
+  app_options/idea64.exe:

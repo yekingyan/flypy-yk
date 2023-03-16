@@ -53,10 +53,10 @@ speller:
 
 translator:
   enable_coder: false
-  dictionary: flypy_yk
-  enable_completion: true
-  enable_user_dict:  false
-  enable_sentence: false
+  dictionary: flypy_yk    # 翻译器将调取此字典文件
+  enable_completion: true  # 逐鍵提示
+  enable_user_dict:  false # 關閉用戶詞典和字頻調整
+  enable_sentence: false  # 连打模式
 
 punctuator:
   import_preset: default
@@ -67,6 +67,11 @@ punctuator:
     ',' : '，'
     '\' : '、'
     ':' : '：'
+    "|" : "|" # 同半角
+    "/" : "/" # 同半角
+    "#" : "#" # 同半角
+
+
 
 key_binder:
   import_preset: default

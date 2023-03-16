@@ -1,0 +1,21 @@
+customization:
+  distribution_code_name: Weasel
+  distribution_version: 0.14.3
+  generator: "Rime::SwitcherSettings"
+  modified_time: "Mon Mar  6 11:38:00 2023"
+  rime_version: 1.5.3
+patch:
+  # "ascii_composer/switch_key/Shift_L": commit_code
+  # "ascii_composer/switch_key/Shift_R": commit_code
+  ascii_composer/good_old_caps_lock: true
+  ascii_composer/switch_key:
+    Caps_Lock: clear
+    Shift_L: commit_code
+    Shift_R: inline_ascii
+    Control_L: noop
+    Control_R: noop
+  "menu/page_size": 3
+  schema_list:
+    - {schema: flypy_yk}
+    - {schema: wubi86}
+    - {schema: wubi_flypy}
