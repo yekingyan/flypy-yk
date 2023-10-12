@@ -99,6 +99,8 @@ punctuator:
     "~" : "~" # 同半角
     "^" : "^" # 同半角
     "@" : "@" # 同半角
+    "[" : "[" # 同半角
+    "]" : "]" # 同半角
 
 key_binder:
   import_preset: default
