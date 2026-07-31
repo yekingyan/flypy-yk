@@ -4,15 +4,15 @@
 schema:
   schema_id: flypy_yk
   name: 小鶴YK
-  version: "0.0.1"
+  version: "0.1.0"
   author:
     - yekingyan
   description: |
-    小鶴雙拼五笔形方案，主要用于五笔反查。
+    小鶴雙拼五笔形方案，全位置支持 z 键模糊通配与单字确定性输入。
 
 switches:
   - name: ascii_mode
-    reset: 1
+    reset: 0
     states: [ 中文, 西文 ]
   - name: full_shape
     reset: 0
@@ -39,15 +39,16 @@ engine:
   translators:
     - echo_translator
     - punct_translator
-    - reverse_lookup_translator
     - table_translator
     - lua_translator@date_translator # 动态日期时间输入
     - lua_translator@number_translator # 数字大写与金额转换 (输入 v123)
     - lua_translator@calculator_translator # 简易表达式计算器 (输入 =1+1)
     - lua_translator@help_translator # 快捷帮助卡片 (输入 help)
+  filters:
 
 speller:
   alphabet: zyxwvutsrqponmlkjihgfedcba
+  initials: zyxwvutsrqponmlkjihgfedcba
   max_code_length: 4
   auto_select: true
   use_space: false
@@ -72,22 +73,11 @@ punctuator:
     "/" : "/" # 同半角
     "#" : "#" # 同半角
 
-
-
 key_binder:
   import_preset: default
 
 recognizer:
   import_preset: default
   patterns:
-    reverse_lookup: "`[a-z]*'?$"
     calculator: "^[cC=]+[0-9].*$"
     number: "^[vV]+[0-9].*$"
-
-reverse_lookup:
-  dictionary: flypy_yk
-  enable_completion: true
-  prefix: "`"
-  suffix: "'"
-  tips: 〔编码〕
-

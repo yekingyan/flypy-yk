@@ -4,7 +4,7 @@
 schema:
   schema_id: wubi86
   name: "五笔86"
-  version: "0.0.1"
+  version: "0.1.0"
   dependencies:
    - flypy_yk
 
@@ -37,18 +37,19 @@ engine:
     - fallback_segmentor
   translators:
     - punct_translator
-    - reverse_lookup_translator
     - table_translator
     - lua_translator@date_translator # 自定义系统变量输出
     - lua_translator@number_translator # 数字大写与金额转换 (输入 v123)
     - lua_translator@calculator_translator # 简易表达式计算器 (输入 =1+1)
     - lua_translator@help_translator # 快捷帮助卡片 (输入 help)
   filters:
-    # - lua_filter@single_char_first_filter # 单字优先方法
 
 speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  initials: zyxwvutsrqponmlkjihgfedcba
   max_code_length: 4                    # 四码上屏
   auto_select: true                     # 自动上屏
+  use_space: false
 
 translator:
   dictionary: wubi86                    # 翻译器将调取此字典文件
@@ -57,21 +58,7 @@ translator:
   enable_sentence: false                # 句子输入模式
   enable_user_dict: false               # 是否开启用户词典（用户词典记录动态字词频，用户词）
   enable_encoder: false
-  preedit_format:                       # 上屏码自定义
-#    - xform/.+//
-  comment_format:                       # 提示码自定义
-#    - xform/.+//                        # 配置：消除所有候选词后的提示码
 
-
-reverse_lookup:
-  dictionary: flypy_yk
-  prefix: "z"
-  suffix: "'"
-  tips: [小鹤YK]
-  preedit_format:
-    - xform/([nl])v/$1ü/
-    - xform/([jqxy])v/$1u/
-    - xform/([nl])ue/$1üe/
 punctuator:
   import_preset: default
 
@@ -81,6 +68,5 @@ key_binder:
 recognizer:
   import_preset: default
   patterns:
-    reverse_lookup: "^z[a-z]*'?$"
     calculator: "^[cC=]+[0-9].*$"
     number: "^[vV]+[0-9].*$"

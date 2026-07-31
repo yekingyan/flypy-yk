@@ -1,10 +1,13 @@
 ---
-name: flypy_yk
+name: wubi_flypy
 version: "0.1.0"
 sort: original
+
 import_tables:
-  - flypy_yk.base
+  - wubi86_ms
+  - wubi86_extra
   - flypy_yk.wubi
+  - flypy_yk.base
 
 columns:
   - text

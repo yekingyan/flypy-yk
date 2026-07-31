@@ -4,13 +4,13 @@
 schema:
   schema_id: wubi_flypy
   name: "五笔小鹤"
-  version: "0.0.1"
+  version: "0.1.0"
   dependencies:
     - flypy_yk
 
 switches:
   - name: ascii_mode
-    reset: 1
+    reset: 0
     states: [ 中, 英 ]
   - name: full_shape
     states: [ 半, 全 ]
@@ -37,50 +37,28 @@ engine:
     - fallback_segmentor
   translators:
     - punct_translator
-    - reverse_lookup_translator
     - table_translator
     - lua_translator@date_translator # 动态日期时间输出
     - lua_translator@number_translator # 数字大写与金额转换 (输入 v123)
     - lua_translator@calculator_translator # 简易表达式计算器 (输入 =1+1)
     - lua_translator@help_translator # 快捷帮助卡片 (输入 help)
   filters:
-    # - lua_filter@single_char_first_filter # 单字优先方法
 
 speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  initials: zyxwvutsrqponmlkjihgfedcba
   delimiter: " ;'"
-  #max_code_length: 4  # 四碼頂字上屏
+  max_code_length: 4
+  auto_select: true
+  use_space: false
 
 translator:
-  dictionary: wubi86                    # 翻译器将调取此字典文件
+  dictionary: wubi_flypy                # 调取五笔与小鹤双拼联合混输字典
   enable_charset_filter: true           # 开启字符集过滤
   enable_completion: true               # 提前显示编码未输入完整的词条
-
-  # 开启自动造词相关设置，将下面四项都改为 true
   enable_sentence: false                # 句子输入模式
-  enable_user_dict: false               # 是否开启用户词典（用户词典记录动态字词频，用户词）
-  enable_encoder: true                  # 自动造词
-  encode_commit_history: false          # 是否对已上屏的词自动造词
-
-  max_phrase_length: 10                 # 自动生成词的最大长度
-  user_dict: user                       # 用户词典名
-  db_class: tabledb                     # 用户词典类型 userdb - 二进制 / tabledb - 人类语言
-  disable_user_dict_for_patterns:       # 不需要录入用户词典的编码
-    - "^z.*$"
-
-# 输入的编码同时进行拼音反查，实现五笔与拼音的混输
-abc_segmentor:
-  extra_tags:
-    - reverse_lookup
-
-reverse_lookup:
-  dictionary: flypy_yk
-  prefix: "z"
-  suffix: "'"
-  tips: [小鹤YK]
-  preedit_format:
-    - xform/([nl])v/$1ü/
-    - xform/([nl])ue/$1üe/
-    - xform/([jqxy])v/$1u/
+  enable_user_dict: false               # 是否开启用户词典
+  enable_encoder: false
 
 punctuator:
   import_preset: default
@@ -110,6 +88,5 @@ key_binder:
 recognizer:
   import_preset: default
   patterns:
-    reverse_lookup: "^z[a-z]*'?$"
     calculator: "^[cC=]+[0-9].*$"
     number: "^[vV]+[0-9].*$"

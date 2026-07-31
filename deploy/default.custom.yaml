@@ -20,10 +20,12 @@ patch:
     - { accept: equal, send: Page_Down, when: has_menu }
     - { accept: comma, send: Page_Up, when: paging }
     - { accept: period, send: Page_Down, when: has_menu }
+    - { accept: semicolon, send: 2, when: has_menu }
+    - { accept: slash, send: 3, when: has_menu }
   schema_list:
     - { schema: wubi_flypy }
-    - { schema: wubi86 }
     - { schema: flypy_yk }
+    - { schema: wubi86 }
   switcher:
     abbreviate_options: true
     caption: "〔方案選單〕"

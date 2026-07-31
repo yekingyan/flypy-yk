@@ -27,7 +27,7 @@ FLYPY_WUBI_PREFIX = """# Rime dict
 
 ---
 name: flypy_yk.wubi
-version: "0.0.1"
+version: "0.1.0"
 sort: original
 use_preset_vocabulary: false
 
@@ -115,12 +115,26 @@ def process_wubi86_ms_dict(wubi86_ms_dict: str, word_level: Dict[str, int]):
                         final_weight = 500 + pos_score
                         stats[3] += 1
                     lines.append(f"{word}\t{code}\t{final_weight}\n")
+                    
+                    # 为单字五笔编码派生 z 通配规则
+                    wildcard_weight = max(1, final_weight - 10)
+                    clen = len(code)
+                    if clen == 4:
+                        lines.append(f"{word}\t{code[:3]}z\t{wildcard_weight}\n")
+                        lines.append(f"{word}\t{code[:2]}z{code[3]}\t{wildcard_weight}\n")
+                        lines.append(f"{word}\t{code[0]}z{code[2:]}\t{wildcard_weight}\n")
+                        lines.append(f"{word}\tz{code[1:]}\t{wildcard_weight}\n")
+                        lines.append(f"{word}\t{code[:2]}zz\t{wildcard_weight}\n")
+                    elif clen == 3:
+                        lines.append(f"{word}\t{code[:2]}z\t{wildcard_weight}\n")
+                        lines.append(f"{word}\t{code[0]}z{code[2]}\t{wildcard_weight}\n")
+                        lines.append(f"{word}\tz{code[1:]}\t{wildcard_weight}\n")
                 else:
                     lines.append(line)
             else:
                 lines.append(line)
 
-    with open(wubi86_ms_dict, "w", encoding="utf8") as f:
+    with open(wubi86_ms_dict, "w", encoding="utf8", newline="\n") as f:
         f.writelines(lines)
 
     print(f"[INFO] 阶梯基准 + 原始字频二级混合权重已写入 {wubi86_ms_dict}:")
@@ -204,15 +218,39 @@ def build_flypy_wubi(wubi_dict: str, flypy_base_dict: str, output_dict: str, wor
             base_weight = 500
 
         for py in pys:
-            wubi = max(wubis, key=len)
-            code1 = f"{py}{wubi[:1]}"
-            code2 = f"{py}{wubi[:2]}"
+            if len(py) < 2:
+                continue
+            py1, py2 = py[0], py[1]
 
-            lines.append(f"{word}\t{code1}\t{base_weight}\n")
-            lines.append(f"{word}\t{code2}\t{base_weight}\n")
-            generated_count += 2
+            wubis_clean = [w for w in wubis if w]
+            if not wubis_clean:
+                continue
+            wubi = max(wubis_clean, key=len)
+            w1 = wubi[0]
+            w2 = wubi[1] if len(wubi) >= 2 else ""
 
-    with open(output_dict, "w", encoding="utf8") as f:
+            code_3 = f"{py1}{py2}{w1}"
+            rules = {(code_3, base_weight)}
+
+            if w2:
+                code_4 = f"{py1}{py2}{w1}{w2}"
+                rules.add((code_4, base_weight))
+
+            wildcard_weight = max(1, base_weight - 10)
+
+            # 仅在形码补码位置 (第 3、4 码) 进行 z 通配派生，避免干扰双拼首码
+            rules.add((f"{py1}{py2}z", wildcard_weight))
+
+            if w2:
+                rules.add((f"{py1}{py2}{w1}z", wildcard_weight))
+                rules.add((f"{py1}{py2}z{w2}", wildcard_weight))
+                rules.add((f"{py1}{py2}zz", wildcard_weight))
+
+            for c, w in rules:
+                lines.append(f"{word}\t{c}\t{w}\n")
+                generated_count += 1
+
+    with open(output_dict, "w", encoding="utf8", newline="\n") as f:
         f.writelines(lines)
 
     print(f"[INFO] 成功生成 {output_dict}: 包含 {generated_count} 条二级混合权重规则")
