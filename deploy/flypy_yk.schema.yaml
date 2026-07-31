@@ -41,9 +41,9 @@ engine:
     - punct_translator
     - reverse_lookup_translator
     - table_translator
-  filters:
-    - simplifier
-    - uniquifier
+    - lua_translator@date_translator # 动态日期时间输入
+    - lua_translator@number_translator # 数字大写与金额转换 (输入 v123)
+    - lua_translator@calculator_translator # 简易表达式计算器 (输入 =1+1)
 
 speller:
   alphabet: zyxwvutsrqponmlkjihgfedcba
@@ -52,10 +52,10 @@ speller:
   use_space: false
 
 translator:
-  enable_coder: false
+  enable_encoder: false  # 纯单字上屏，关闭自动造词
   dictionary: flypy_yk    # 翻译器将调取此字典文件
   enable_completion: true  # 逐鍵提示
-  enable_user_dict:  false # 關閉用戶詞典和字頻調整
+  enable_user_dict:  false # 關閉用戶詞典和字頻調整（纯单字确定性排序）
   enable_sentence: false  # 连打模式
 
 punctuator:
@@ -80,6 +80,8 @@ recognizer:
   import_preset: default
   patterns:
     reverse_lookup: "`[a-z]*'?$"
+    calculator: "^=.*$"
+    number: "^[vV]+[0-9].*$"
 
 reverse_lookup:
   dictionary: flypy_yk

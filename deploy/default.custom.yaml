@@ -15,10 +15,15 @@ patch:
     Control_L: noop
     Control_R: noop
   "menu/page_size": 3
+  "key_binder/bindings":
+    - { accept: minus, send: Page_Up, when: has_menu }
+    - { accept: equal, send: Page_Down, when: has_menu }
+    - { accept: comma, send: Page_Up, when: paging }
+    - { accept: period, send: Page_Down, when: has_menu }
   schema_list:
-    - { schema: flypy_yk }
-    - { schema: wubi86 }
     - { schema: wubi_flypy }
+    - { schema: wubi86 }
+    - { schema: flypy_yk }
   switcher:
     abbreviate_options: true
     caption: "〔方案選單〕"

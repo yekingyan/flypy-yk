@@ -5,7 +5,7 @@ customization:
   modified_time: "Wed Mar  1 21:34:40 2023"
   rime_version: 1.5.3
 patch:
-  "style/color_scheme": google
+  "style/color_scheme": steam
   "style/horizontal": true  # 水平显示
 
   app_options/gvim.exe:  # 程序名字全用小寫字母
@@ -15,3 +15,4 @@ patch:
   app_options/pycharm.exe:
     ascii_mode: true
   app_options/idea64.exe:
+    ascii_mode: true
