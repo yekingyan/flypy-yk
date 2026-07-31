@@ -1,0 +1,31 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build Dictionary & Check Duplicates
+        run: |
+          python3 custom.py --build --check-duplicates
+
+      - name: Verify Deploy Directory Files
+        run: |
+          test -f deploy/flypy_yk.wubi.dict.yaml
+          test -f deploy/flypy_yk.schema.yaml
+          test -f deploy/rime.lua
+          echo "All required deploy files exist."

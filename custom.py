@@ -1,140 +1,20 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+custom.py - 小鹤双拼 + 五笔形码 词库构建与校验工具
+
+用于从基础小鹤双拼词库与五笔86词库生成小鹤双拼加五笔形码的 dict.yaml 文件。
+"""
+
+import argparse
 import collections
+import os
+import sys
+from typing import Dict, List, Set, Tuple, Optional
 
 
-def is_chinese(uchar):
-    """判断一个unicode是否是汉字"""
-    return uchar >= u'\u4e00' and uchar <= u'\u9fa5'
-
-
-def is_can_stay(uchar):
-    if is_chinese(uchar) and len(uchar) > 1:
-        return False
-    if uchar.startswith("?"):
-        return False
-    return True
-
-
-def is_line_can_stay(line):
-    first = str(line.split("\t")[0])
-    if not is_can_stay(first):
-        print("trim", line)
-        return False
-    return True
-
-
-def get_single_char_line(line):
-    if not is_line_can_stay(line):
-        return
-    return line
-
-
-def simp_file(name, out):
-    simp_file_fn(name, out, get_single_char_line)
-
-
-def simp_file_fn(name, out, fn):
-    mark="..."
-    lines = []
-    begin = False
-    with open(name, "r", encoding="utf8") as f:
-        for line in f:
-            if begin:
-                line = fn(line)
-            else:
-                if line.startswith(mark):
-                    begin = True
-            if line:
-                lines.append(line)
-
-    if not begin:
-        print("never begin")
-        return
-    with open(out, "w+", encoding="utf8") as f:
-        f.writelines(lines)
-
-
-def get_flypy_no_end_line():
-    word_to_py = collections.defaultdict(set)
-    def fn(line):
-        args = line.split("\t")
-        word = args[0]
-        if not is_chinese(word):
-            return
-
-        py = args[1]
-        if len(py) > 2:
-            py = py[:2]
-
-        if py in word_to_py[word]:
-            return
-        word_to_py[word].add(py) 
-
-        args[1] = py
-        return "\t".join(args) + "\n"
-    return fn
-
-
-
-def flypy_no_end(filename):
-    """小鹤双拼去掉加形"""
-    simp_file_fn(filename, filename + ".no_end", get_flypy_no_end_line())
-    
-
-def get_word_to_code(filename):
-    word_to_code = collections.defaultdict(list)
-    begin = False
-    with open(filename, "r", encoding="utf8") as f:
-        for line in f:
-            if begin:
-                args = line.split("\t")
-                if len(args) < 2:
-                    continue
-                word = args[0]
-                code = args[1].strip()
-                word_to_code[word].append(code)
-            else:
-                if line.startswith("..."):
-                    begin = True
-    return word_to_code
-
-
-def get_line_to_dict(filename, func):
-    ret = collections.defaultdict(list)
-    begin = False
-    with open(filename, "r", encoding="utf8") as f:
-        for line in f:
-            if begin:
-                args = line.split("\t")
-                if len(args) < 2:
-                    continue
-                key, value = func(args)
-                if key is None:
-                    continue
-                ret[key].append(value)
-            else:
-                if line.startswith("..."):
-                    begin = True
-    return ret
-
-
-def get_word_to_code(filename):
-    def fn(args):
-        word = args[0]
-        code = args[1].strip()
-        return word, code
-    return get_line_to_dict(filename, fn)
-
-
-def get_code_to_word(filename):
-    def fn(args):
-        word = args[0]
-        code = args[1].strip()
-        return code, word
-    return get_line_to_dict(filename, fn)
-
-
-FLYPY_WUBI_PREFIX = """
-# Rime dict
+FLYPY_WUBI_PREFIX = """# Rime dict
 # encoding: utf-8
 # 小鹤双拼加五笔形码
 # 如"这"字，双拼码为ve，五笔码为yp，则加形后的码为vey
@@ -150,122 +30,113 @@ use_preset_vocabulary: false
 """
 
 
-def to_flypy_wubi(filename="flypy_yk.wubi.dict.yaml"):
-    word_to_wubi = get_word_to_code("wubi86_jidian.dict.yaml")
-    word_to_py = get_word_to_code("flypy_yk.base.dict.yaml")
-    print("wubi", len(word_to_wubi))
-    print("flypy", len(word_to_py))
+def is_chinese(uchar: str) -> bool:
+    """判断一个字符是否为常用汉字"""
+    return u'\u4e00' <= uchar <= u'\u9fa5'
+
+
+def get_line_to_dict(filename: str, func) -> Dict[str, List[str]]:
+    """读取 dict.yaml 文件提取 header 后 key-value 数据结构"""
+    ret = collections.defaultdict(list)
+    if not os.path.exists(filename):
+        print(f"[ERROR] 文件不存在: {filename}", file=sys.stderr)
+        return ret
+
+    begin = False
+    with open(filename, "r", encoding="utf8") as f:
+        for line in f:
+            if begin:
+                line_str = line.strip()
+                if not line_str or line_str.startswith("#"):
+                    continue
+                args = line_str.split("\t")
+                if len(args) < 2:
+                    continue
+                key, value = func(args)
+                if key is not None:
+                    ret[key].append(value)
+            else:
+                if line.startswith("..."):
+                    begin = True
+    return ret
+
+
+def get_word_to_code(filename: str) -> Dict[str, List[str]]:
+    """获取 Word -> Code 映射"""
+    def fn(args: List[str]) -> Tuple[str, str]:
+        return args[0], args[1].strip()
+    return get_line_to_dict(filename, fn)
+
+
+def get_code_to_word(filename: str) -> Dict[str, List[str]]:
+    """获取 Code -> Word 映射"""
+    def fn(args: List[str]) -> Tuple[str, str]:
+        return args[1].strip(), args[0]
+    return get_line_to_dict(filename, fn)
+
+
+def build_flypy_wubi(wubi_dict: str, flypy_base_dict: str, output_dict: str) -> Tuple[int, int]:
+    """
+    根据五笔词库和双拼基础词库生成加形词库
+    返回: (成功生成的条目数, 缺失五笔编码的汉字数)
+    """
+    word_to_wubi = get_word_to_code(wubi_dict)
+    word_to_py = get_word_to_code(flypy_base_dict)
+
+    if not word_to_wubi or not word_to_py:
+        print("[ERROR] 词库加载失败，请检查输入路径", file=sys.stderr)
+        return 0, 0
 
     lines = [FLYPY_WUBI_PREFIX]
+    generated_count = 0
+    missing_wubi_words = []
+
     for word, pys in word_to_py.items():
         wubis = word_to_wubi.get(word)
         if not wubis:
+            missing_wubi_words.append(word)
             continue
+
         for py in pys:
+            # 选取最长五笔编码
             wubi = max(wubis, key=len)
-            lines.append(word + "\t" + py + wubi[:1] + "\n")
-            lines.append(word + "\t" + py + wubi[:2] + "\n")
+            lines.append(f"{word}\t{py}{wubi[:1]}\n")
+            lines.append(f"{word}\t{py}{wubi[:2]}\n")
+            generated_count += 2
 
-    with open(filename, "w", encoding="utf8") as f:
+    with open(output_dict, "w", encoding="utf8") as f:
         f.writelines(lines)
 
+    print(f"[INFO] 成功生成 {output_dict}: 包含 {generated_count} 条规则")
+    if missing_wubi_words:
+        print(f"[WARN] 有 {len(missing_wubi_words)} 个汉字未在五笔词库中找到编码 (例: {missing_wubi_words[:10]})")
 
-def code_word_swap(filename):
-    def fn(line):
-        args = line.split("\t")
-        if len(args) < 2:
-            return
-        code = args[0].strip()
-        word = args[1].strip()
-        return word + "\t" + code + "\n"
-    simp_file_fn(filename, filename + ".swap", fn)
-
-
-def add_low_weight(filename):
-    def fn(line):
-        args = line.split("\t")
-        if len(args) < 2:
-            return
-        code = args[1].strip()
-        word = args[0].strip()
-        return f"{word}\t{code}\t{41848}\n"
-    simp_file_fn(filename, "low."+filename, fn)
-
-
-def merge(to_name, *filenames):
-    begin = False
-    lines = []
-    for filename in filenames:
-        with open(filename, "r", encoding="utf8") as f:
-            for line in f:
-                if begin:
-                    args = line.split("\t")
-                    if len(args) < 2:
-                        continue
-                    word = args[0]
-                    code = args[1].strip()
-                    weight = len(lines) + 1
-                    lines.append(f"{word}\t{code}\t{weight}\n")
-                else:
-                    if line.startswith("..."):
-                        begin = True
-
-    with open(to_name, "w", encoding="utf8") as f:
-        f.writelines(lines)
-
-
-def check_same_code_with_other(a, *args):
-    code_to_word1 = get_code_to_word(a)
-    # code_to_word2 = get_code_to_word(b)
-    code_to_word2 = {}
-    for i in args:
-        code_to_word2.update(get_code_to_word(i))
-    same_keys = code_to_word1.keys() & code_to_word2.keys()
-    for k in same_keys:
-        print(k, code_to_word1[k])
-        print(k, code_to_word2[k])
-
-
-def check_same_code(a):
-    code_to_word1 = get_code_to_word(a)
-    for k, v in code_to_word1.items():
-        if len(v) == 4:
-            print(k, v)
-
-
-def wubilevel2(filename):
-    def fn(args):
-        word = args[0]
-        code = args[1].strip()
-        if len(code) != 2:
-            return None, None
-        return code, word
-    code_to_word = get_line_to_dict(filename, fn)
-    l = set([i[0] for i in code_to_word.values()])
-    print("".join(l))
+    return generated_count, len(missing_wubi_words)
 
 
 def main():
-    # simp_file("wubi86_jidian.dict.yaml.org", "wubi86_jidian.dict.yaml")
-    # simp_file("double_pinyin_flypy.dict.yaml.org", "double_pinyin_flypy.dict.yaml")
+    parser = argparse.ArgumentParser(description="小鹤双拼+五笔形码 词库构建与校验工具")
+    parser.add_argument("--deploy-dir", default="deploy", help="deploy 配置文件目录路径 (默认: deploy)")
+    parser.add_argument("--build", action="store_true", help="自动构建 flypy_yk.wubi.dict.yaml 词库")
+    parser.add_argument("--check-duplicates", action="store_true", help="检查重码分布")
 
-    # code_word_swap("x.yaml")
-    # flypy_no_end("x.yaml.swap")
-    # to_flypy_wubi("flypy_yk.wubi.dict.yaml")
+    args = parser.parse_args()
 
-    # add_low_weight("flypy_yk.wubi.dict.yaml")
-    # merge("to.txt",
-    #     "wubi/wubi86_ms.dict.yaml",
-    #     "flypy_yk/flypy_yk.base.dict.yaml",
-    #     "flypy_yk/flypy_yk.wubi.dict.yaml",
-    #     )
-    # check_same_code_with_other("wubi/wubi86_ms.dict.yaml",
-    #     "flypy_yk/flypy_yk.base.dict.yaml",
-    #     "flypy_yk/flypy_yk.wubi.dict.yaml",
-    #     )
-    # check_same_code("wubi/wubi86_ms.dict.yaml")
-    wubilevel2("wubi/wubi86_ms.dict.yaml")
-    print("done")
+    deploy_dir = args.deploy_dir
+    wubi_dict = os.path.join(deploy_dir, "wubi86_ms.dict.yaml")
+    flypy_base_dict = os.path.join(deploy_dir, "flypy_yk.base.dict.yaml")
+    output_dict = os.path.join(deploy_dir, "flypy_yk.wubi.dict.yaml")
+
+    # 默认若无特殊参数则执行 --build
+    if not args.check_duplicates or args.build:
+        print("[INFO] 开始构建双拼五笔形码词库...")
+        build_flypy_wubi(wubi_dict, flypy_base_dict, output_dict)
+
+    if args.check_duplicates:
+        print("[INFO] 正在检查重码情况...")
+        code_to_word = get_code_to_word(output_dict)
+        duplicates = {k: v for k, v in code_to_word.items() if len(v) > 2}
+        print(f"[INFO] 编码重码率统计: 超过2重码的编码组共有 {len(duplicates)} 组")
 
 
 if __name__ == "__main__":
