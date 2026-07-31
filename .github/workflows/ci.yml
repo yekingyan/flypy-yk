@@ -19,6 +19,10 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Run Unit Tests
+        run: |
+          python3 -m unittest test_custom.py
+
       - name: Build Dictionary & Check Duplicates
         run: |
           python3 custom.py --build --check-duplicates

@@ -42,6 +42,7 @@ engine:
     - lua_translator@date_translator # 自定义系统变量输出
     - lua_translator@number_translator # 数字大写与金额转换 (输入 v123)
     - lua_translator@calculator_translator # 简易表达式计算器 (输入 =1+1)
+    - lua_translator@help_translator # 快捷帮助卡片 (输入 help)
   filters:
     # - lua_filter@single_char_first_filter # 单字优先方法
 
@@ -81,5 +82,5 @@ recognizer:
   import_preset: default
   patterns:
     reverse_lookup: "^z[a-z]*'?$"
-    calculator: "^=.*$"
+    calculator: "^[cC=]+[0-9].*$"
     number: "^[vV]+[0-9].*$"

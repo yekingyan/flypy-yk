@@ -20,7 +20,7 @@ end
 
 -------------------------------------------------------------------------------
 -- 2. 数字大写与人民币金额转换 (number_translator)
--- 使用方式: 输入 v123 或 v123.45
+-- 使用方式: 输入 v123 或 V123 或 vv123
 -------------------------------------------------------------------------------
 local function num2chinese(num, is_money)
     local digits = {"零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"}
@@ -96,8 +96,17 @@ end
 -- 使用方式: 输入 =1+1 或 =100*1.13
 -------------------------------------------------------------------------------
 function calculator_translator(input, seg)
-    if input:sub(1, 1) == "=" and #input > 1 then
-        local expr = input:sub(2)
+    -- 支持 C100*1.13 或 cc100*1.13 或 =100*1.13 前缀 (C 取自 Calculator)
+    local expr = nil
+    if input:sub(1, 1) == "C" then
+        expr = input:sub(2)
+    elseif input:sub(1, 2) == "cc" or input:sub(1, 2) == "CC" then
+        expr = input:sub(3)
+    elseif input:sub(1, 1) == "=" then
+        expr = input:sub(2)
+    end
+
+    if expr and #expr > 0 then
         -- 安全字符过滤：仅允许数字与基础计算符号
         if expr:find("^[0-9%.%+%-%*%/%(%)%s]+$") then
             local func, err = load("return " .. expr)
@@ -109,5 +118,21 @@ function calculator_translator(input, seg)
                 end
             end
         end
+    end
+end
+
+
+-------------------------------------------------------------------------------
+-- 4. 快捷帮助指令 (help_translator)
+-- 使用方式: 输入 help 或 rmhelp
+-------------------------------------------------------------------------------
+function help_translator(input, seg)
+    if input == "help" or input == "rmhelp" then
+        yield(Candidate("help", seg.start, seg._end, "V123", "金额大写 (如 V12345.6)"))
+        yield(Candidate("help", seg.start, seg._end, "C1+1", "简易算式计算器 (如 C100*1.13 或 cc1+1)"))
+        yield(Candidate("help", seg.start, seg._end, "zhk", "z 键反查五笔拆码 (如 zhk)"))
+        yield(Candidate("help", seg.start, seg._end, "date", "当前系统日期 (如 2026-07-31)"))
+        yield(Candidate("help", seg.start, seg._end, "time", "当前系统时间 (如 17:29)"))
+        yield(Candidate("help", seg.start, seg._end, "-=/,. ", "选词与翻页 (减/加/逗/句)"))
     end
 end
