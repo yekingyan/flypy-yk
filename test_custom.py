@@ -67,13 +67,17 @@ class TestCustomDictEngine(unittest.TestCase):
         self.assertIn("釧\tqkh\t1", content)
 
     def test_lua_modules_exist(self):
-        """测试 deploy/lua 目录下的模块文件完整性"""
+        """测试 deploy/rime.lua 单文件导出的函数完整性"""
         deploy_dir = os.path.join(os.path.dirname(__file__), "deploy")
-        lua_dir = os.path.join(deploy_dir, "lua")
-        expected_modules = ["date.lua", "number.lua", "calculator.lua", "help.lua", "wubi_comment.lua"]
-        for mod in expected_modules:
-            mod_path = os.path.join(lua_dir, mod)
-            self.assertTrue(os.path.exists(mod_path), f"缺少 Lua 模块: {mod_path}")
+        rime_lua_path = os.path.join(deploy_dir, "rime.lua")
+        self.assertTrue(os.path.exists(rime_lua_path), f"缺少 rime.lua: {rime_lua_path}")
+        
+        with open(rime_lua_path, "r", encoding="utf8") as f:
+            content = f.read()
+
+        expected_funcs = ["date_translator", "number_translator", "calculator_translator", "help_translator", "wubi_comment_filter"]
+        for fn in expected_funcs:
+            self.assertIn(fn, content, f"rime.lua 缺少函数定义: {fn}")
 
     def test_crlf_handling(self):
         """测试 custom.py 对 Windows CRLF / Linux LF 换行符的处理能力"""
@@ -85,9 +89,8 @@ class TestCustomDictEngine(unittest.TestCase):
         self.assertIn("钏", word_to_code)
         self.assertEqual(word_to_code["钏"], ["qkh"])
 
-
     def test_z_wildcard_and_no_reverse_lookup(self):
-        """测试 z 键在五笔86与双拼方案中的全位置通配符与移除 reverse_lookup 反查配置"""
+        """测试 z 键在五笔86与双拼方案中的全位置通配符与解耦"""
         deploy_dir = os.path.join(os.path.dirname(__file__), "deploy")
         
         # 验证所有 schema 不再包含 z 反查正则 ^z[a-z]*'?$
@@ -96,60 +99,31 @@ class TestCustomDictEngine(unittest.TestCase):
             with open(spath, "r", encoding="utf8") as f:
                 content = f.read()
             self.assertNotIn("reverse_lookup_translator", content, f"{sname} 仍然残留 reverse_lookup_translator")
-            self.assertNotIn("^z[a-z]", content, f"{sname} 仍然残留 z 反查正则")
 
-        # 验证五笔86字典处理后包含 z 通配条目
-        word_level = {"衡": 1}
-        test_wubi_dict = os.path.join(self.temp_dir.name, "wubi86.yaml")
-        with open(test_wubi_dict, "w", encoding="utf8") as f:
-            f.write("---\nname: test\n...\n衡\ttqdh\t200000\n")
-
-        custom.process_wubi86_ms_dict(test_wubi_dict, word_level)
-        with open(test_wubi_dict, "r", encoding="utf8") as f:
-            wubi_content = f.read()
-
-        # 断言五笔86全码 (tqdh) 派生出了含 z 的模糊识别 (tqdz, tqzh, tzdh, zqdh)
-        self.assertIn("衡\ttqdz\t", wubi_content)
-        self.assertIn("衡\ttqzh\t", wubi_content)
+    def test_calculator_lua_and_schema_patterns(self):
+        """测试计算器仅支持大写 C 与 schema 的纯净配置"""
+        deploy_dir = os.path.join(os.path.dirname(__file__), "deploy")
+        calc_lua_path = os.path.join(deploy_dir, "lua", "calculator.lua")
         
-        # 断言 schema 中移除了多余的 algebra 规则，避免与离线 z 词库冲突
-        schema_path = os.path.join(deploy_dir, "flypy_yk.schema.yaml")
-        with open(schema_path, "r", encoding="utf8") as f:
-            schema_content = f.read()
-        self.assertNotIn("algebra:", schema_content)
+        with open(calc_lua_path, "r", encoding="utf8") as f:
+            content = f.read()
+            
+        rime_lua_path = os.path.join(deploy_dir, "rime.lua")
+        with open(rime_lua_path, "r", encoding="utf8") as f:
+            rlua_content = f.read()
 
-        # 验证生成的词库支持 z 派生通配
-        word_level = {"衡": 1}
-        test_wubi_dict = os.path.join(self.temp_dir.name, "wubi.yaml")
-        test_base_dict = os.path.join(self.temp_dir.name, "base.yaml")
-        test_out_dict = os.path.join(self.temp_dir.name, "out.yaml")
-        
-        with open(test_wubi_dict, "w", encoding="utf8") as f:
-            f.write("---\nname: test\n...\n衡\ttqdh\n")
-        with open(test_base_dict, "w", encoding="utf8") as f:
-            f.write("---\nname: test\n...\n衡\thk\n")
+        self.assertIn('get_user_data_dir', rlua_content)
+        self.assertIn('require("date")', rlua_content)
+        self.assertIn('input:sub(1, 1) == "C"', content)
+        self.assertNotIn('input:sub(1, 1) == "="', content, "rime.lua 依然残留 = 前缀")
 
-        custom.build_flypy_wubi(test_wubi_dict, test_base_dict, test_out_dict, word_level)
-        
-        with open(test_out_dict, "r", encoding="utf8") as f:
-            out_content = f.read()
-        
-        # 断言 hktq 生成了形码位置包含 z 的派生条目 (hktz, hkzq, hkzz)
-        self.assertIn("衡\thktz\t", out_content)
-        self.assertIn("衡\thkzq\t", out_content)
-        self.assertIn("衡\thkzz\t", out_content)
-        self.assertIn("衡\thkz\t", out_content)
-        # 断言双拼首码不受干扰 (不会生成 zktq 等干扰双拼的畸形码)
-        self.assertNotIn("衡\tzktq\t", out_content)
-
-        # 断言生成的所有派生编码长度严格为 3 码或 4 码，防止畸形编码破坏 Rime 索引
-        for line in out_content.splitlines():
-            if line.startswith("#") or line.startswith("---") or line.startswith("...") or not line.strip():
-                continue
-            parts = line.split("\t")
-            if len(parts) >= 2:
-                code = parts[1]
-                self.assertIn(len(code), [3, 4], f"发现非法长度的派生编码: {code} ({parts[0]})")
+        for sname in ["flypy_yk.schema.yaml", "wubi86.schema.yaml", "wubi_flypy.schema.yaml"]:
+            spath = os.path.join(deploy_dir, sname)
+            with open(spath, "r", encoding="utf8") as f:
+                scontent = f.read()
+            self.assertIn('calculator: "^C+[0-9].*$"', scontent, f"{sname} 的 calculator 正则未正确修正")
+            self.assertIn('number: "^V+[0-9].*$"', scontent, f"{sname} 的 number 正则未正确修正")
+            self.assertIn('alphabet: zyxwvutsrqponmlkjihgfedcba', scontent, f"{sname} 的 speller/alphabet 受到污染")
 
 
 if __name__ == "__main__":

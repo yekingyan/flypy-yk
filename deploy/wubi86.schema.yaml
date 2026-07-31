@@ -68,5 +68,5 @@ key_binder:
 recognizer:
   import_preset: default
   patterns:
-    calculator: "^[cC=]+[0-9].*$"
-    number: "^[vV]+[0-9].*$"
+    calculator: "^C+[0-9].*$"
+    number: "^V+[0-9].*$"

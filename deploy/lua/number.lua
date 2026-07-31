@@ -1,4 +1,4 @@
--- lua/number.lua - 大写数字与人民币金额转换器
+-- lua/number.lua - 大写数字与人民币金额转换器 (仅大写 V)
 
 local function num2chinese(num, is_money)
     local digits = {"零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"}
@@ -54,10 +54,8 @@ local function num2chinese(num, is_money)
 end
 
 local function number_translator(input, seg)
-    local prefix, val = input:match("^(v+)(%d+%.?%d*)$")
-    if not prefix then
-        prefix, val = input:match("^(V+)(%d+%.?%d*)$")
-    end
+    -- 仅支持大写 V 开头的数字 (例如 V123)
+    local prefix, val = input:match("^(V+)(%d+%.?%d*)$")
 
     if val and tonumber(val) then
         local upper_num = num2chinese(val, false)
