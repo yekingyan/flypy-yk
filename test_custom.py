@@ -124,6 +124,7 @@ class TestCustomDictEngine(unittest.TestCase):
             self.assertIn('calculator: "^C+[0-9].*$"', scontent, f"{sname} 的 calculator 正则未正确修正")
             self.assertIn('number: "^V+[0-9].*$"', scontent, f"{sname} 的 number 正则未正确修正")
             self.assertIn('alphabet: zyxwvutsrqponmlkjihgfedcba', scontent, f"{sname} 的 speller/alphabet 受到污染")
+            self.assertIn('reset: 1', scontent, f"{sname} 未开启默认英文 reset: 1")
 
 
 if __name__ == "__main__":
