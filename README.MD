@@ -51,7 +51,7 @@
      - `C100*1.13`: 简易算式计算器 (大写 C 触发，包含乘方 `^` / 取模 `%` 与精度格式化)
      - `date` / `time` / `dt` / `iso`: 动态系统日期时间与 ISO 8601 标准时间戳
      - `help`: 快捷指令提示卡片
-     - 五笔编码/拆字提示滤镜
+     - 五笔编码/拆字提示滤镜（`wubi_comment.lua`）：`wubi_flypy` 方案下，单字候选后显示五笔 86 全码及简码，如 `鹤 pwyg (简 pwy)`；数据来自 `deploy/lua/wubi_table.txt`
 2. **`wubi86` / `wubi_flypy`（五笔及双拼混输方案）**
    提供原生五笔 86 输入，并支持按 `z` 键反查小鹤双拼编码。
 
@@ -67,4 +67,7 @@ python3 custom.py --build
 
 # 检查当前编码重码情况
 python3 custom.py --check-duplicates
+
+# 重新生成五笔提示码表 deploy/lua/wubi_table.txt（wubi86_ms 词库变动后需执行）
+python3 custom.py --build-hints
 ```

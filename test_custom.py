@@ -127,6 +127,25 @@ class TestCustomDictEngine(unittest.TestCase):
             self.assertIn('reset: 1', scontent, f"{sname} 未开启默认英文 reset: 1")
 
 
+    def test_build_wubi_hints(self):
+        """测试五笔提示码表：只收汉字、排除 z 展开码、全码取最长、简码单列"""
+        dict_path = os.path.join(self.temp_dir.name, "wubi86_ms.dict.yaml")
+        out_path = os.path.join(self.temp_dir.name, "wubi_table.txt")
+        with open(dict_path, "w", encoding="utf8") as f:
+            f.write("---\nname: x\n...\n\n")
+            f.write("鹤\tpwy\t204999\n鹤\tpwyg\t204999\n鹤\tpwz\t204989\n鹤\tzwy\t204989\n")
+            f.write("我\tq\t54999\n我\ttrnt\t54999\n我\ttrn\t54999\n")
+            f.write("。\tsfhk\t1\n工作\tabcd\t1\n")
+
+        count = custom.build_wubi_hints(dict_path, out_path)
+        with open(out_path, "r", encoding="utf8") as f:
+            rows = dict((l.split("\t")[0], l.rstrip("\n").split("\t")[1:]) for l in f)
+
+        self.assertEqual(count, 2, "标点与词组不应进入码表")
+        self.assertEqual(rows["鹤"], ["pwyg", "pwy"])
+        self.assertEqual(rows["我"], ["trnt", "q,trn"])
+
+
 if __name__ == "__main__":
     unittest.main()
 

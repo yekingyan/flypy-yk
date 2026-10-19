@@ -20,6 +20,9 @@ patch:
     simplifier@symbol_support
   engine/filters/@next 1:
     simplifier@emoji_suggestion
+  # 单字候选显示五笔86全码（lua/wubi_comment.lua + lua/wubi_table.txt）
+  engine/filters/@next 2:
+    lua_filter@wubi_comment_filter
   
 
   #######emoji

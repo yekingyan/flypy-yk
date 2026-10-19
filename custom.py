@@ -257,10 +257,52 @@ def build_flypy_wubi(wubi_dict: str, flypy_base_dict: str, output_dict: str, wor
     return generated_count, len(missing_wubi_words)
 
 
+def is_han_char(ch: str) -> bool:
+    """判断是否为汉字（CJK 基本区/扩展 A/兼容区/扩展 B 及以后），用于过滤标点与符号"""
+    o = ord(ch)
+    return 0x3400 <= o <= 0x9FFF or 0xF900 <= o <= 0xFAFF or 0x20000 <= o <= 0x3FFFF
+
+
+def build_wubi_hints(wubi_dict: str, output_file: str) -> int:
+    """从 wubi86_ms 词库提取单字五笔全码与简码，生成 Lua 候选提示滤镜用的码表
+
+    输出格式：字<TAB>全码<TAB>简码,简码（无简码则留空）
+    只收汉字；含 z 万能键的展开码不是真实五笔码，一律排除。
+    """
+    # 字 -> {编码: 最大权重}
+    char_codes: Dict[str, Dict[str, int]] = collections.defaultdict(dict)
+    in_body = False
+    with open(wubi_dict, "r", encoding="utf8") as f:
+        for line in f:
+            if not in_body:
+                in_body = line.strip() == "..."
+                continue
+            parts = line.rstrip("\r\n").split("\t")
+            if len(parts) < 2 or len(parts[0]) != 1 or not is_han_char(parts[0]):
+                continue
+            ch, code = parts[0], parts[1]
+            if not (1 <= len(code) <= 4 and code.isalpha() and code.islower()) or "z" in code:
+                continue
+            weight = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
+            char_codes[ch][code] = max(weight, char_codes[ch].get(code, 0))
+
+    count = 0
+    with open(output_file, "w", encoding="utf8", newline="\n") as out:
+        for ch in sorted(char_codes):
+            codes = char_codes[ch]
+            full = max(codes, key=lambda c: (len(c), codes[c]))
+            shorts = sorted(c for c in codes if len(c) < len(full))
+            out.write(f"{ch}\t{full}\t{','.join(shorts)}\n")
+            count += 1
+    print(f"[INFO] 成功生成 {output_file}: 包含 {count} 个单字五笔提示")
+    return count
+
+
 def main():
     parser = argparse.ArgumentParser(description="小鹤双拼+五笔形码 词库构建与校验工具")
     parser.add_argument("--deploy-dir", default="deploy", help="deploy 配置文件目录路径 (默认: deploy)")
     parser.add_argument("--build", action="store_true", help="自动构建词库")
+    parser.add_argument("--build-hints", action="store_true", help="生成五笔提示码表 deploy/lua/wubi_table.txt")
     parser.add_argument("--check-duplicates", action="store_true", help="检查重码分布")
     parser.add_argument("--dict-8105", default="8105.txt", help="8105 常用字表路径 (默认: 8105.txt)")
 
@@ -270,6 +312,10 @@ def main():
     wubi_dict = os.path.join(deploy_dir, "wubi86_ms.dict.yaml")
     flypy_base_dict = os.path.join(deploy_dir, "flypy_yk.base.dict.yaml")
     output_dict = os.path.join(deploy_dir, "flypy_yk.wubi.dict.yaml")
+
+    if args.build_hints:
+        build_wubi_hints(wubi_dict, os.path.join(deploy_dir, "lua", "wubi_table.txt"))
+        return
 
     word_level = load_8105_levels(args.dict_8105)
 
